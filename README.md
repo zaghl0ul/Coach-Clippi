@@ -6,6 +6,9 @@ A high-performance native Windows application that provides real-time commentary
 
 Coach Clippi is built around a native C++ application that provides the ultimate Melee coaching experience:
 
+
+<img width="1729" height="1104" alt="Screenshot 2025-09-08 121333" src="https://github.com/user-attachments/assets/3f0c5cc5-0165-4a36-9b8b-cc11cb946b45" />
+
 ### 🖥️ Native Windows Application (Primary)
 - **C++ Native Application**: High-performance desktop application with embedded game window
 - **DLL Injection**: Direct memory access to game data via `overlay.dll`
