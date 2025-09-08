@@ -9,7 +9,7 @@ import { getLiveSlpMonitor } from './liveSlpMonitor.js';
 import { provideLiveCommentary, provideDualCommentary } from './liveCommentary.js';
 import { getConfig, getAIConfig } from './utils/configManager.js';
 import { createLLMProvider, TemplateProvider } from './utils/llmProviders.js';
-import { getOverlayManager } from './overlay/overlayManager.js';
+import { getOverlayIntegration } from './overlay/overlayIntegration.js';
 import './utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -52,32 +52,58 @@ let currentGameData = null;
 let commentaryHistory = [];
 let coachingHistory = [];
 
-// Initialize overlay manager
-let overlayManager = null;
-async function initializeOverlayManager() {
+// Initialize overlay integration
+let overlayIntegration = null;
+async function initializeOverlayIntegration() {
   try {
-    overlayManager = getOverlayManager();
-    await overlayManager.initialize();
+    overlayIntegration = getOverlayIntegration();
     
     // Set up event handlers for overlay
-    overlayManager.on('injected', (processId) => {
-      console.log(`🎮 Overlay injected into Dolphin process ${processId}`);
-      io.emit('overlay:status', { injected: true, processId });
+    overlayIntegration.on('initialized', () => {
+      console.log('✅ Overlay integration initialized');
+      io.emit('overlay:status', {
+        initialized: true,
+        status: overlayIntegration.getStatus()
+      });
     });
     
-    overlayManager.on('injectionFailed', (error) => {
-      console.error('❌ Overlay injection failed:', error.message);
-      io.emit('overlay:status', { injected: false, error: error.message });
+    overlayIntegration.on('connected', () => {
+      console.log('📡 Overlay connected and ready for messages');
+      io.emit('overlay:status', {
+        connected: true,
+        status: overlayIntegration.getStatus()
+      });
     });
     
-    overlayManager.on('cleanup', () => {
-      console.log('🧹 Overlay cleaned up');
-      io.emit('overlay:status', { injected: false });
+    overlayIntegration.on('messageSent', (message) => {
+      io.emit('overlay:messageSent', {
+        text: message.text,
+        timestamp: message.timestamp,
+        category: message.category
+      });
     });
     
-    console.log('✅ Overlay manager initialized');
+    overlayIntegration.on('error', (error) => {
+      console.error('❌ Overlay error:', error.message);
+      io.emit('overlay:error', { error: error.message });
+    });
+    
+    overlayIntegration.on('disconnected', () => {
+      console.log('📡 Overlay disconnected');
+      io.emit('overlay:status', { connected: false });
+    });
+    
+    overlayIntegration.on('shutdown', () => {
+      console.log('🛑 Overlay shutdown');
+      io.emit('overlay:status', { connected: false, initialized: false });
+    });
+    
+    // Initialize the overlay system
+    await overlayIntegration.initialize();
+    
+    console.log('✅ Overlay integration system ready');
   } catch (error) {
-    console.error('❌ Failed to initialize overlay manager:', error.message);
+    console.error('❌ Failed to initialize overlay integration:', error.message);
   }
 }
 
@@ -199,7 +225,7 @@ async function initializeLLMProvider() {
 
 // Initialize on startup
 await initializeLLMProvider();
-await initializeOverlayManager();
+await initializeOverlayIntegration();
 
 // Socket.IO connection handling
 io.on('connection', (socket) => {
@@ -261,6 +287,26 @@ io.on('connection', (socket) => {
                     
                     commentaryHistory.push(commentaryEntry);
                     
+                    // Send to overlay - fast commentary first (immediate reaction)
+                    if (dualCommentary.fast && overlayIntegration) {
+                      overlayIntegration.onCommentaryGenerated({
+                        text: dualCommentary.fast,
+                        type: 'fast',
+                        eventType
+                      });
+                    }
+                    
+                    // Send analytical commentary with delay for better UX
+                    if (dualCommentary.analytical && overlayIntegration) {
+                      setTimeout(() => {
+                        overlayIntegration.onCommentaryGenerated({
+                          text: dualCommentary.analytical,
+                          type: 'analytical',
+                          eventType
+                        });
+                      }, 2000); // 2 second delay
+                    }
+                    
                     // Emit both types of commentary to clients
                     if (dualCommentary.fast) {
                       io.emit('commentary:generated', {
@@ -275,7 +321,7 @@ io.on('connection', (socket) => {
                       io.emit('commentary:generated', {
                         commentary: dualCommentary.analytical,
                         eventType,
-                        commentaryType: 'analytical', 
+                        commentaryType: 'analytical',
                         timestamp: commentaryEntry.timestamp
                       });
                     }
@@ -298,6 +344,15 @@ io.on('connection', (socket) => {
                     
                     commentaryHistory.push(commentaryEntry);
                     
+                    // Send to overlay
+                    if (overlayIntegration) {
+                      overlayIntegration.onCommentaryGenerated({
+                        text: commentary,
+                        type: 'single',
+                        eventType
+                      });
+                    }
+                    
                     // Emit commentary to all clients
                     io.emit('commentary:generated', {
                       commentary,
@@ -310,6 +365,11 @@ io.on('connection', (socket) => {
               } catch (commentaryError) {
                 console.error('Error generating commentary:', commentaryError.message);
               }
+            }
+            
+            // Send game events to overlay
+            if (overlayIntegration) {
+              overlayIntegration.onGameEvent(eventType, eventData);
             }
             
             // Emit specific Slippi events to frontend
@@ -434,16 +494,262 @@ io.on('connection', (socket) => {
       socket.emit('error', { message: `Replay upload error: ${error.message}` });
     }
   });
+
+  // Overlay control endpoints
+  socket.on('overlay:start', async () => {
+    try {
+      if (!overlayIntegration) {
+        overlayIntegration = getOverlayIntegration();
+      }
+      
+      const initialized = await overlayIntegration.initialize();
+      if (initialized) {
+        socket.emit('overlay:started', {
+          success: true,
+          status: overlayIntegration.getStatus(),
+          message: 'Overlay system started successfully'
+        });
+      } else {
+        socket.emit('overlay:error', { message: 'Failed to start overlay system' });
+      }
+    } catch (error) {
+      socket.emit('overlay:error', { message: `Overlay start error: ${error.message}` });
+    }
+  });
+
+  socket.on('overlay:stop', () => {
+    try {
+      if (overlayIntegration) {
+        overlayIntegration.shutdown();
+        socket.emit('overlay:stopped', { success: true });
+      } else {
+        socket.emit('overlay:error', { message: 'Overlay not running' });
+      }
+    } catch (error) {
+      socket.emit('overlay:error', { message: `Overlay stop error: ${error.message}` });
+    }
+  });
+
+  socket.on('overlay:sendMessage', (data) => {
+    try {
+      const { message, options } = data;
+      if (overlayIntegration && overlayIntegration.isReady()) {
+        overlayIntegration.sendMessage(message, options);
+        socket.emit('overlay:messageSent', { success: true, message });
+      } else {
+        socket.emit('overlay:error', { message: 'Overlay not ready' });
+      }
+    } catch (error) {
+      socket.emit('overlay:error', { message: `Message send error: ${error.message}` });
+    }
+  });
+
+  socket.on('overlay:configure', (config) => {
+    try {
+      if (overlayIntegration) {
+        overlayIntegration.configure(config);
+        socket.emit('overlay:configured', {
+          success: true,
+          config: overlayIntegration.getStatus().config
+        });
+      } else {
+        socket.emit('overlay:error', { message: 'Overlay not initialized' });
+      }
+    } catch (error) {
+      socket.emit('overlay:error', { message: `Configuration error: ${error.message}` });
+    }
+  });
+
+  socket.on('overlay:getStatus', () => {
+    try {
+      if (overlayIntegration) {
+        socket.emit('overlay:status', overlayIntegration.getStatus());
+      } else {
+        socket.emit('overlay:status', {
+          initialized: false,
+          connected: false,
+          message: 'Overlay not initialized'
+        });
+      }
+    } catch (error) {
+      socket.emit('overlay:error', { message: `Status error: ${error.message}` });
+    }
+  });
+
+  socket.on('overlay:test', async () => {
+    try {
+      if (overlayIntegration && overlayIntegration.isReady()) {
+        await overlayIntegration.testOverlay();
+        socket.emit('overlay:testComplete', { success: true });
+      } else {
+        socket.emit('overlay:error', { message: 'Overlay not ready for testing' });
+      }
+    } catch (error) {
+      socket.emit('overlay:error', { message: `Test error: ${error.message}` });
+    }
+  });
 });
 
 // API Routes
 app.get('/api/status', (req, res) => {
+  const overlayStatus = overlayIntegration ? overlayIntegration.getStatus() : {
+    initialized: false,
+    connected: false,
+    message: 'Overlay not initialized'
+  };
+
   res.json({
     status: 'running',
     liveMonitoring: liveMonitoringActive,
     currentGame: currentGameData,
+    overlay: overlayStatus,
     timestamp: new Date().toISOString()
   });
+});
+
+// Overlay API endpoints
+app.get('/api/overlay/status', (req, res) => {
+  try {
+    if (overlayIntegration) {
+      res.json(overlayIntegration.getStatus());
+    } else {
+      res.json({
+        initialized: false,
+        connected: false,
+        message: 'Overlay integration not initialized'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/api/overlay/start', async (req, res) => {
+  try {
+    if (!overlayIntegration) {
+      overlayIntegration = getOverlayIntegration();
+    }
+    
+    const initialized = await overlayIntegration.initialize();
+    if (initialized) {
+      res.json({
+        success: true,
+        status: overlayIntegration.getStatus(),
+        message: 'Overlay system started successfully'
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to start overlay system'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.post('/api/overlay/stop', (req, res) => {
+  try {
+    if (overlayIntegration) {
+      overlayIntegration.shutdown();
+      res.json({
+        success: true,
+        message: 'Overlay system stopped'
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Overlay not running'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.post('/api/overlay/message', (req, res) => {
+  try {
+    const { message, options } = req.body;
+    
+    if (!message) {
+      return res.status(400).json({
+        success: false,
+        error: 'Message text is required'
+      });
+    }
+    
+    if (overlayIntegration && overlayIntegration.isReady()) {
+      overlayIntegration.sendMessage(message, options);
+      res.json({
+        success: true,
+        message: 'Message sent to overlay',
+        text: message
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: 'Overlay not ready'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.post('/api/overlay/configure', (req, res) => {
+  try {
+    const config = req.body;
+    
+    if (overlayIntegration) {
+      overlayIntegration.configure(config);
+      res.json({
+        success: true,
+        config: overlayIntegration.getStatus().config,
+        message: 'Overlay configuration updated'
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: 'Overlay not initialized'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.post('/api/overlay/test', async (req, res) => {
+  try {
+    if (overlayIntegration && overlayIntegration.isReady()) {
+      await overlayIntegration.testOverlay();
+      res.json({
+        success: true,
+        message: 'Overlay test sequence completed'
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: 'Overlay not ready for testing'
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
 });
 
 // Update AI configuration endpoint

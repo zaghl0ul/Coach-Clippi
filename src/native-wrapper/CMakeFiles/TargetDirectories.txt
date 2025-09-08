@@ -1,0 +1,4 @@
+C:/Users/mikazukinoyaiba/Desktop/Coach Clippi/src/native-wrapper/CMakeFiles/CoachClippiWrapper.dir
+C:/Users/mikazukinoyaiba/Desktop/Coach Clippi/src/native-wrapper/CMakeFiles/INSTALL.dir
+C:/Users/mikazukinoyaiba/Desktop/Coach Clippi/src/native-wrapper/CMakeFiles/ALL_BUILD.dir
+C:/Users/mikazukinoyaiba/Desktop/Coach Clippi/src/native-wrapper/CMakeFiles/ZERO_CHECK.dir

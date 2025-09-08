@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\src\native-wrapper\main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\src\native-wrapper\WindowManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\src\native-wrapper\GameDataInterface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\src\native-wrapper\CoachingInterface.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\imgui-docking\imgui.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\imgui-docking\imgui_draw.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\imgui-docking\imgui_tables.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\imgui-docking\imgui_widgets.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\imgui-docking\imgui_demo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\imgui-docking\backends\imgui_impl_win32.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\imgui-docking\backends\imgui_impl_dx11.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\src\native-wrapper\WindowManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\src\native-wrapper\GameDataInterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\src\native-wrapper\CoachingInterface.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\mikazukinoyaiba\Desktop\Coach Clippi\src\native-wrapper\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{985294A4-05F4-33FC-B8D7-3E47235A8694}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{404D3B64-0BEC-3A50-8591-7CF916CDC7E9}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

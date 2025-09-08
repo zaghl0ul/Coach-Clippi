@@ -1,0 +1,10 @@
+^C:\USERS\MIKAZUKINOYAIBA\DESKTOP\COACH CLIPPI\SRC\NATIVE-WRAPPER\CMAKEFILES\C2BDC32FBF53F704FB97D83DCF47A909\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SC:/Users/mikazukinoyaiba/Desktop/Coach Clippi/src/native-wrapper" "-BC:/Users/mikazukinoyaiba/Desktop/Coach Clippi/src/native-wrapper" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "C:/Users/mikazukinoyaiba/Desktop/Coach Clippi/src/native-wrapper/CoachClippiWrapper.sln"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
